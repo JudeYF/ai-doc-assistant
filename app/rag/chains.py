@@ -1,4 +1,5 @@
 """LangChain 链式调用模块"""
+from langchain_openai import ChatOpenAI
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langchain_classic.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -46,8 +47,15 @@ prompt = ChatPromptTemplate.from_template(
 # ==========================
 llm = ChatNVIDIA(
     model="openai/gpt-oss-120b",
+    # model="z-ai/glm5",
     api_key=os.getenv('NVIDIA_API_KEY'),
     temperature=0.6,
+)
+llm = ChatOpenAI(
+    temperature=0.6,
+    model="glm-5",
+    api_key=os.getenv("ZHIPU_API_KEY"),
+    base_url="https://open.bigmodel.cn/api/paas/v4/"
 )
 
 # ==========================
