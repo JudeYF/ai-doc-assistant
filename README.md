@@ -19,7 +19,8 @@
         height="480">
 </iframe>
 
-[点击查看完整视频 →](https://www.bilibili.com/video/BV1mfXcBjExh)
+[![视频演示](https://player.bilibili.com/player.html?bvid=BV1mfXcBjExh&as_wide=1&high_quality=1&danmaku=0)](https://player.bilibili.com/player.html?bvid=BV1mfXcBjExh&as_wide=1&high_quality=1&danmaku=0)
+   
 
 ---
 
