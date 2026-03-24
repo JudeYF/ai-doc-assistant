@@ -9,20 +9,7 @@
 
 ## 📋 演示视频
 
-<iframe src="//player.bilibili.com/player.html?bvid=BV1mfXcBjExh&page=1&high_quality=1"
-        scrolling="no"
-        border="0"
-        frameborder="no"
-        framespacing="0"
-        allowfullscreen="true"
-        width="720"
-        height="480">
-</iframe>
 
-[![视频演示](https://player.bilibili.com/player.html?bvid=BV1mfXcBjExh&as_wide=1&high_quality=1&danmaku=0)](https://player.bilibili.com/player.html?bvid=BV1mfXcBjExh&as_wide=1&high_quality=1&danmaku=0)
-   
-
----
 
 ## ✨ 核心特性
 
