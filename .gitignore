@@ -1,25 +1,44 @@
 # Python
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
 build/
 dist/
-*.egg-info
-.venv
+.venv/
+venv/
+env/
 
-# 环境变量
+# Secrets
 .env
+.env.*
+!.env.example
 
-# 系统文件
+# OS
 .DS_Store
 Thumbs.db
 
-# 向量数据库
-chroma_db/
-data/chroma_db/
-
-# 聊天历史数据库
-data/chat_history.db
-
-# IDE
+# Editors and local agent settings
 .vscode/
 .idea/
+.claude/
+.cursor/
+
+# Generated indexes and chat history
+chroma_db/
+data/chroma_db/
+data/chat_history.db
+*.sqlite
+*.sqlite3
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs and scratch output
+*.log
+logs/

@@ -1,330 +1,109 @@
-# ⚖️ 智能法律问答系统
+# 治安管理处罚法问答示例
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![LangChain](https://img.shields.io/badge/LangChain-Latest-orange.svg)](https://langchain.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+A small LangChain RAG demo: question answering over the PRC Public Security Administration Punishments Law（《中华人民共和国治安管理处罚法》）.
 
-基于 **LangChain + RAG** 的智能法律问答系统，支持多轮对话、检索来源追溯，并提供友好的 Web 交互界面。
+语料只有这一份公开 PDF。提问后，系统用 Chroma 向量检索和 BM25 各取一批片段，交给一个 OpenAI 兼容的对话模型生成回答。可以通过 FastAPI 或 Streamlit 使用。
 
-## 📋 演示视频
+这是一个能跑起来的学习项目。它没有做过效果评估，回答也不构成法律意见。
 
+## 运行前需要
 
-https://github.com/user-attachments/assets/a2f812a0-ff3d-4e33-9005-3b7f8a1ba0cd
+- Python 3.12
+- 本机 [Ollama](https://ollama.com) 已启动，并已拉取嵌入模型 `bge-m3:latest`
+- 一个 OpenAI 兼容的对话模型接口和密钥。`.env.example` 里的示例是智谱 GLM，换成别的兼容地址也可以
 
+## 安装并启动
 
-
-
-## ✨ 核心特性
-
-| 特性 | 说明 |
-|------|------|
-| 🤖 **智能问答** | 基于《中华人民共和国治安管理处罚法》的专业法律问答 |
-| 🔍 **混合检索** | 向量检索 + BM25 关键词检索，提升召回准确度 |
-| 💬 **多轮对话** | 支持上下文记忆的连续对话，追问自然流畅 |
-| 📄 **来源追溯** | 每个回答都标注相关法律条文，可点击查看原文 |
-| 🌐 **双接口支持** | FastAPI RESTful API + Streamlit 可视化界面 |
-| 🚀 **本地部署**` | 支持 Ollama 本地嵌入模型 + 自选 LLM 服务 |
-
----
-
-## 🛠️ 技术栈
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        用户交互层                             │
-│  ┌──────────────┐              ┌──────────────────────────┐  │
-│  │  Streamlit   │              │  FastAPI (REST API)     │  │
-│  │  Web 界面     │              │                          │  │
-│  └──────────────┘              └──────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                        应用逻辑层                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  LangChain Chains - RAG 问答链、提示词管理             │  │
-│  └──────────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  会话管理 (SQLite) - 多轮对话历史存储                │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                        检索存储层                             │
-│  ┌──────────────────┐      ┌────────────────────────────┐  │
-│  │  Chroma 向量库    │  +   │  BM25 关键词检索            │  │
-│  │  (bge-m3 嵌入)   │      │                            │  │
-│  └──────────────────┘      └────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                        模型服务层                             │
-│  ┌──────────────────┐      ┌────────────────────────────┐  │
-│  │  Ollama 本地     │      │  NVIDIA AI (或自定义 LLM)   │  │
-│  │  bge-m3 嵌入     │      │                            │  │
-│  └──────────────────┘      └────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-- **FastAPI** - 现代高性能 Web 框架
-- **LangChain** - LLM 应用开发框架
-- **Chroma** - 本地向量数据库
-- **Ollama** - 本地嵌入模型 (bge-m3)
-- **NVIDIA AI** - 大语言模型服务
-- **Streamlit** - 交互式 Web 界面
-- **SQLite** - 会话历史存储
-
----
-
-## 🚀 快速开始开始
-
-### 1. 安装依赖
+在仓库根目录执行：
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-### 2. 配置环境变量
-
-创建 `.env` 文件：
-
-```bash
 cp .env.example .env
 ```
 
-编辑 `.env`，填入你的 NVIDIA API Key：
+编辑 `.env`，至少填入 `LLM_API_KEY`。模型名和接口地址也在这个文件里。
 
-```env
-NVIDIA_API_KEY=your_nvidia_api_key_here
-```
-
-### 3. 启动 Ollama 服务
+另开一个终端，准备嵌入模型：
 
 ```bash
-# 如果 Ollama 还未安装，访问 https://ollama.ai 下载安装
-
-# 启动 Ollama 服务
 ollama serve
-
-# 拉取嵌入模型（新终端）
 ollama pull bge-m3:latest
 ```
 
-### 4. 初始化向量数据库
+构建向量索引（只需第一次，或 PDF 变更后）：
 
 ```bash
 python scripts/init_db.py
 ```
 
-首次运行会自动从 PDF 切分文档并创建向量数据库，之后会直接加载已有数据库。
+脚本读取 `data/中华人民共和国治安管理处罚法.pdf`，切分后写入 `data/chroma_db/`。这个目录和会话文件 `data/chat_history.db` 是运行产物，不进 git。要重建索引，删掉 `data/chroma_db` 再执行一次上面的命令。
 
-### 5. 启动服务
-
-#### 方式一：启动 FastAPI 后端
+### API
 
 ```bash
-# 直接运行
-python app/main.py
-
-# 或使用 uvicorn
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-服务启动后访问：
-- **API 文档**: http://localhost:8000/docs
-- **健康检查**: http://localhost:8000/health
+- 健康检查：<http://127.0.0.1:8000/health>
+- 接口文档：<http://127.0.0.1:8000/docs>
 
-#### 方式二：启动 Streamlit 前端（推荐）
+```bash
+curl -s http://127.0.0.1:8000/health
+
+curl -s -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"阻碍执行紧急任务的消防车会如何处罚？","session_id":"demo"}'
+```
+
+`/health` 在密钥已填写时返回 `llm_configured: true`。未填写时服务仍能启动，但 `/chat` 会返回错误。
+
+### 页面
 
 ```bash
 streamlit run app/streamlit_app.py --server.port 8501
 ```
 
-访问 Web 界面：http://localhost:8501
+打开 <http://127.0.0.1:8501>。侧栏有几条示例问题。回答下面可以展开本次检索到的片段。
 
----
+## 配置
 
-## 📖 使用指南
+| 变量 | 含义 | 默认 |
+| --- | --- | --- |
+| `LLM_API_KEY` | 对话模型密钥 | 空 |
+| `LLM_MODEL` | 模型名 | `glm-5` |
+| `LLM_BASE_URL` | OpenAI 兼容接口 | `https://open.bigmodel.cn/api/paas/v4/` |
+| `LLM_TEMPERATURE` | 采样温度 | `0.6` |
+| `OLLAMA_BASE_URL` | Ollama 地址 | `http://127.0.0.1:11434` |
+| `OLLAMA_EMBEDDING_MODEL` | 嵌入模型 | `bge-m3:latest` |
 
-### Streamlit Web 界面
+密钥、模型名和地址都从环境变量读取，代码里没有写死的密钥或本机绝对路径。
 
-推荐使用 Streamlit 前端进行交互，功能包括：
-
-- **聊天对话**：自然语言提问，获得专业法律解答
-- **来源追溯**：展开查看回答相关的法律条文原文
-- **示例问题**：点击预设问题快速体验
-- **会话管理**：新建会话、清空对话
-- **多轮对话**：支持追问，保持上下文连贯
-
-### FastAPI 接口
-
-#### 健康检查
-
-```bash
-curl http://localhost:8000/health
-```
-
-响应：
-```json
-{
-  "status": "healthy",
-  "service": "legal-qa-bot",
-  "nvidia_configured": true
-}
-```
-
-#### 发起问答
-
-```bash
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "阻碍执行紧急任务的消防车会如何处罚？",
-    "session_id": "user123"
-  }'
-```
-
-响应：
-```json
-{
-  "answer": "根据《治安管理处罚法》第五十条规定，阻碍执行紧急任务的消防车、救护车、工程抢险车、警车等车辆通行的，处警告或者二百元以下罚款..."
-}
-```
-
-#### 多轮对话
-
-```bash
-# 第一轮
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "什么是扰乱公共秩序的行为？",
-    "session_id": "user123"
-  }'
-
-# 第二轮（保持上下文）
-curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "这种行为一般会怎么处罚？",
-    "session_id": "user123"
-  }'
-```
-
----
-
-## 📂 项目结构
+## 项目结构
 
 ```
-fastapi-langchain-portfolio/
-├── app/
-│   ├── main.py              # FastAPI 入口和路由
-│   ├── streamlit_app.py     # Streamlit Web 界面
-│   └── rag/
-│       ├── chains.py        # LangChain 链、提示词、问答逻辑
-│       ├── services.py      # 文档加载、切分、清洗
-│       ├── retriever.py     # 向量数据库管理、混合检索
-│       └── utils.py         # 文本清洗工具函数
-├── data/
-│   ├── 中华人民共和国治安管理处罚法.pdf
-│   └── chroma_db/           # 向量数据库（自动生成）
-├── scripts/
-│   └── init_db.py           # 数据库初始化脚本
-├── test/                    # 测试文件
-├── requirements.txt
-├── .env
-└── README.md
+app/main.py            FastAPI：/health、/chat
+app/streamlit_app.py   聊天页
+app/rag/services.py    加载 PDF、清洗、按章/节/条切分
+app/rag/retriever.py   Chroma + BM25 混合检索
+app/rag/chains.py      提示词和问答链，会话写入 SQLite
+app/rag/utils.py       去掉页码等噪音
+scripts/init_db.py     构建或加载向量库
+data/                  法律 PDF（索引和会话库运行时生成）
 ```
 
----
+`.streamlit/config.toml` 只关闭了 Streamlit 的使用统计。
 
-## ⚙️ 开发说明
+## 已知限制
 
-### 运行单个模块测试
+- 评测还没做。仓库里没有测试集，也没有准确率、召回率或人工分数。
+- Agent 层还没做。之前的搜索 / SQL Agent 跑不起来，已经从仓库里去掉。如果以后要加，会单独做一层，而不是塞进现在的问答链。
+- 多轮历史会写入 SQLite，但提示词里的历史接法还不对，追问不一定用到上一轮内容。问答链的这部分留着以后改。
+- 检索没有调过。BM25 用的是按空格切分的默认分词，中文效果有限。向量和关键词的权重是写死的 0.6 / 0.4。
+- 嵌入模型必须由本机 Ollama 提供。Ollama 没开时，建索引和提问都会失败。
+- 页面上展开的「相关条文」是另一次检索的结果，和生成回答时用的那一次不是同一次调用。
+- 模型可能说出条文里没有的话。提示词要求它依据材料作答，代码没有再做校验。
 
-```bash
-# 测试文档切分
-python app/rag/services.py
-
-# 测试检索
-python app/rag/retriever.py
-
-# 测试 RAG 链
-python app/rag/chains.py
-```
-
-### 重建向量数据库
-
-如果 PDF 内容有更新，需要重建数据库：
-
-```bash
-# 删除旧数据库
-rm -rf data/chroma_db
-
-# 重新初始化
-python scripts/init_db.py
-```
-
----
-
-## ❓ 常见问题
-
-**Q: 首次请求响应很慢，是正常的吗？**
-A: 是的。首次请求时会初始化向量数据库，需要 10-30 秒。后续请求会很快。
-
-**Q: 提示 "Ollama 服务未运行" 怎么办？**
-A: 确保已启动 Ollama 服务：`ollama serve`
-
-**Q: 对话历史会丢失吗？**
-A: 对话历史保存在 SQLite 数据库中，服务重启不会丢失。
-
-**Q: 可以换用其他 LLM 吗？**
-A: 可以。修改 `.env` 文件中的 LLM 配置，支持 OpenAI、Azure OpenAI、本地 LLaMA 等。
-
----
-
-## 🗺️ 项目路线图
-
-- [x] **阶段 0**：法律问答系统（已完成）
-  - RAG 问答
-  - 混合检索（向量 + BM25）
-  - 多轮对话
-  - FastAPI 接口
-  - Streamlit Web 界面
-  - 检索来源追溯
-
-- [ ] **阶段 1**：通用文档支持
-  - 支持多种文档格式（PDF、Word、TXT）
-  - 文档上传和管理
-  - 用户系统
-
-- [ ] **阶段 2**：智能文档分析
-  - 文档自动总结
-  - 关键信息提取
-  - 文档对比
-
-- [ ] **阶段 3**：Agent 能力
-  - 智能任务拆解
-  - 多工具协作
-  - 复杂业务场景
-
----
-
-## 📝 注意事项
-
-1. **首次启动慢**：首次请求时会初始化向量数据库，需要 10-30 秒
-2. **Ollama 服务**：确保 Ollama 服务正在运行
-3. **NVIDIA API Key**：需要在 `.env` 文件中配置
-4. **仅供参考**：本系统回答仅供参考，不构成法律建议
-
----
-
-## 🤝 贡献和反馈
-
-这是一个持续迭代的个人项目，欢迎提出建议和反馈。
-
----
-
-## 📄 许可证
-
-MIT License
+回答只供演示，不要当成法律依据。

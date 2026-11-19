@@ -2,7 +2,7 @@
 import os
 import shutil
 from pathlib import Path
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_ollama import OllamaEmbeddings
@@ -21,8 +21,11 @@ _bm25_retriever = None
 _ensemble_retriever = None
 
 def get_embedding():
-    """获取嵌入模型"""
-    return OllamaEmbeddings(model="bge-m3:latest")
+    """获取嵌入模型（Ollama，模型名和地址来自环境变量）"""
+    return OllamaEmbeddings(
+        model=os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3:latest"),
+        base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
+    )
 
 def init_database():
     """初始化或加载向量数据库"""

@@ -56,19 +56,20 @@ async def root():
 @app.get("/health")
 async def health_check():
     """健康检查"""
-    # 检查必要的环境变量
-    nvidia_api_key = os.getenv("NVIDIA_API_KEY")
-    
-    if not nvidia_api_key:
+    llm_api_key = os.getenv("LLM_API_KEY", "").strip()
+
+    if not llm_api_key:
         return {
             "status": "warning",
-            "message": "NVIDIA_API_KEY 未配置，聊天功能可能无法使用"
+            "service": "legal-qa-bot",
+            "llm_configured": False,
+            "message": "LLM_API_KEY 未配置，问答接口无法调用模型",
         }
-    
+
     return {
         "status": "healthy",
         "service": "legal-qa-bot",
-        "nvidia_configured": True
+        "llm_configured": True,
     }
 
 @app.post("/chat", response_model=ChatResponse)
@@ -95,10 +96,6 @@ async def chat(request: ChatRequest):
 if __name__ == "__main__":
     import uvicorn
     
-    print("🚀 启动 FastAPI 服务...")
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    print("启动 FastAPI 服务...")
+    # reload 需要以导入字符串启动（uvicorn app.main:app --reload）
+    uvicorn.run(app, host="0.0.0.0", port=8000)

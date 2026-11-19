@@ -1,7 +1,26 @@
 [project]
 name = "ai-doc-assistant"
 version = "0.1.0"
-description = "Add your description here"
+description = "LangChain RAG demo over the PRC Public Security Administration Punishments Law."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn==0.40.0",
+    "streamlit==1.41.1",
+    "python-dotenv==1.2.1",
+    "langchain-core==1.2.18",
+    "langchain-community==0.4.1",
+    "langchain-classic==1.0.1",
+    "langchain-openai==1.1.7",
+    "langchain-ollama==1.0.1",
+    "langchain-text-splitters==1.1.0",
+    "langchain-chroma==1.1.0",
+    "chromadb==1.4.1",
+    "pymupdf==1.26.7",
+    "rank-bm25==0.2.2",
+    "sqlalchemy==2.0.46",
+]
+
+[tool.uv]
+package = false
