@@ -74,7 +74,12 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path
     
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "data/中华人民共和国治安管理处罚法.pdf"
+    default_pdf = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "中华人民共和国治安管理处罚法.pdf"
+    )
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else str(default_pdf)
     
     if not Path(pdf_path).exists():
         print(f"文件不存在: {pdf_path}")

@@ -1,17 +1,21 @@
 """LangChain 链式调用模块"""
-from langchain_openai import ChatOpenAI
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from langchain_classic.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_community.chat_message_histories import SQLChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from app.rag.retriever import get_retrieval_result
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
+from langchain_community.chat_message_histories import SQLChatMessageHistory
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_openai import ChatOpenAI
+
+from app.rag.retriever import get_retrieval_result
 
 load_dotenv()
+
+# 未配置密钥时用占位符，保证模块可以导入；真正提问时再检查。
+_MISSING_API_KEY = "missing-key"
 
 # 对话历史数据库路径
 HISTORY_DB_PATH = Path(__file__).parent.parent.parent / "data" / "chat_history.db"
@@ -43,19 +47,24 @@ prompt = ChatPromptTemplate.from_template(
 )
 
 # ==========================
-# LLM 配置
+# LLM 配置（OpenAI 兼容接口，密钥和地址来自环境变量）
 # ==========================
-llm = ChatNVIDIA(
-    model="openai/gpt-oss-120b",
-    # model="z-ai/glm5",
-    api_key=os.getenv('NVIDIA_API_KEY'),
-    temperature=0.6,
-)
+def _llm_api_key() -> str:
+    return os.getenv("LLM_API_KEY", "").strip()
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    return float(raw)
+
+
 llm = ChatOpenAI(
-    temperature=0.6,
-    model="glm-5",
-    api_key=os.getenv("ZHIPU_API_KEY"),
-    base_url="https://open.bigmodel.cn/api/paas/v4/"
+    temperature=_env_float("LLM_TEMPERATURE", 0.6),
+    model=os.getenv("LLM_MODEL", "glm-5"),
+    api_key=_llm_api_key() or _MISSING_API_KEY,
+    base_url=os.getenv("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/"),
 )
 
 # ==========================
@@ -71,9 +80,10 @@ def get_chat_history(session_id: str):
     Returns:
         SQLChatMessageHistory 实例
     """
+    HISTORY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return SQLChatMessageHistory(
         session_id=session_id,
-        connection_string=f"sqlite:///{HISTORY_DB_PATH}"
+        connection=f"sqlite:///{HISTORY_DB_PATH}",
     )
 
 # ==========================
@@ -114,6 +124,10 @@ def ask(question: str, session_id: str = "default") -> str:
     Returns:
         AI 回答
     """
+    if not _llm_api_key():
+        raise RuntimeError(
+            "LLM_API_KEY 未设置。请复制 .env.example 为 .env 并填入密钥。"
+        )
     result = chain_with_history.invoke(
         {'question': question, 'session_id': session_id},
         config={'configurable': {'session_id': session_id}}
