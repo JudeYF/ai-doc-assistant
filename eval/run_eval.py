@@ -142,6 +142,32 @@ def articles_from_headers(text: str) -> list[str]:
     return found
 
 
+def articles_from_metadata(metadata: dict[str, Any] | None) -> list[str]:
+    """优先用 chunk.metadata['article']；支持逗号分隔的多条号。"""
+    if not metadata:
+        return []
+    raw = metadata.get("article")
+    if raw is None or str(raw).strip() == "":
+        return []
+    found: list[str] = []
+    seen: set[str] = set()
+    for part in re.split(r"[,，、;；|]+", str(raw)):
+        name = normalize_article(part)
+        if name and name not in seen:
+            seen.add(name)
+            found.append(name)
+    return found
+
+
+def articles_from_doc(doc: Any) -> list[str]:
+    """命中判断：有 metadata['article'] 时用它，否则回退到正文标题匹配。"""
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    from_meta = articles_from_metadata(metadata)
+    if from_meta:
+        return from_meta
+    return articles_from_headers(getattr(doc, "page_content", "") or "")
+
+
 def articles_from_citations(text: str) -> list[str]:
     found: list[str] = []
     seen: set[str] = set()
@@ -198,19 +224,22 @@ def setup_imports() -> None:
 
 
 def ensure_index_exists() -> Path:
-    db_path = PROJECT_ROOT / "data" / "chroma_db"
-    if not db_path.exists():
-        die(
-            f"未找到向量库 {db_path}。请先在仓库根目录运行 "
-            f"`python scripts/init_db.py`。本脚本不会自动重建索引。"
-        )
-    return db_path
+    v2 = PROJECT_ROOT / "data" / "chroma_db_v2"
+    legacy = PROJECT_ROOT / "data" / "chroma_db"
+    if v2.exists():
+        return v2
+    if legacy.exists():
+        return legacy
+    die(
+        f"未找到向量库 {v2} 或 {legacy}。请先在仓库根目录运行 "
+        f"`python scripts/init_db.py`。本脚本不会自动重建索引。"
+    )
 
 
-def retrieve(question: str) -> list[Any]:
+def retrieve(question: str, k: int = 6) -> list[Any]:
     from app.rag.retriever import get_retrieval_result
 
-    docs = get_retrieval_result(question)
+    docs = get_retrieval_result(question, k=k)
     return list(docs or [])
 
 
@@ -295,13 +324,15 @@ def eval_retrieval(item: dict[str, Any], docs: list[Any], ks: list[int]) -> dict
     for rank, doc in enumerate(docs, 1):
         text = getattr(doc, "page_content", "") or ""
         metadata = dict(getattr(doc, "metadata", {}) or {})
-        headers = articles_from_headers(text)
+        headers = articles_from_doc(doc)
         ev_hits = [evidence_in_text(ev, text) for ev in (item.get("gold_evidence") or [])]
         rows.append(
             {
                 "rank": rank,
                 "articles": headers,
                 "source_metadata": metadata.get("source"),
+                "article_metadata": metadata.get("article"),
+                "chunk_id": metadata.get("chunk_id"),
                 "evidence_hit": any(ev_hits),
                 "preview": text[:180].replace("\n", " "),
             }
@@ -411,7 +442,7 @@ def main() -> None:
     for i, item in enumerate(items, 1):
         qid = item.get("id", f"item{i}")
         print(f"[{i}/{len(items)}] {qid} ({item.get('type')}) {item['question'][:40]}...")
-        docs = retrieve(item["question"])
+        docs = retrieve(item["question"], k=args.k)
         retrieval = eval_retrieval(item, docs, ks)
         record: dict[str, Any] = {
             "id": qid,
@@ -460,8 +491,8 @@ def main() -> None:
         "with_answers": args.with_answers,
         "with_llm_judge": args.with_llm_judge,
         "notes": [
-            "检索命中按切分后的 chunk 正文里的条文标题（第X条）匹配，因为 Chroma metadata 只有 PDF 路径，没有条号。",
-            "get_retrieval_result 忽略 k 参数，生产检索器两端都写死 k=6；本脚本按返回列表的名次计算 Hit@k。",
+            "检索命中优先使用 chunk.metadata['article']；没有该字段时，回退到从正文识别条文标题（第X条）。",
+            "get_retrieval_result 的 k 会传给向量检索和 BM25；本脚本按返回列表的名次计算 Hit@k。",
             "生成回答时使用与项目相同的提示词和 LLM 环境变量，但 history 为空，且不写入 data/chat_history.db。",
         ],
     }

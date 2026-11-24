@@ -4,7 +4,7 @@ A small LangChain RAG demo: question answering over the PRC Public Security Admi
 
 语料只有这一份公开 PDF。提问后，系统用 Chroma 向量检索和 BM25 各取一批片段，交给一个 OpenAI 兼容的对话模型生成回答。可以通过 FastAPI 或 Streamlit 使用。
 
-这是一个能跑起来的学习项目。它没有做过效果评估，回答也不构成法律意见。
+这是一个能跑起来的学习项目。`eval/` 里有一份基于当前语料的评测集。回答不构成法律意见。
 
 ## 运行前需要
 
@@ -39,7 +39,7 @@ ollama pull bge-m3:latest
 python scripts/init_db.py
 ```
 
-脚本读取 `data/中华人民共和国治安管理处罚法.pdf`，切分后写入 `data/chroma_db/`。这个目录和会话文件 `data/chat_history.db` 是运行产物，不进 git。要重建索引，删掉 `data/chroma_db` 再执行一次上面的命令。
+脚本读取 `data/中华人民共和国治安管理处罚法.pdf`，按条切分后写入 `data/chroma_db_v2/`（collection 名 `china_public_security_law_v2`）。旧索引若仍在 `data/chroma_db/`，不会被覆盖。这两个目录和会话文件 `data/chat_history.db` 是运行产物，不进 git。要重建新索引，删掉 `data/chroma_db_v2` 再执行一次上面的命令。
 
 ### API
 
@@ -86,11 +86,12 @@ streamlit run app/streamlit_app.py --server.port 8501
 ```
 app/main.py            FastAPI：/health、/chat
 app/streamlit_app.py   聊天页
-app/rag/services.py    加载 PDF、清洗、按章/节/条切分
+app/rag/services.py    加载 PDF、清洗、按条切分（写入条号等 metadata）
 app/rag/retriever.py   Chroma + BM25 混合检索
 app/rag/chains.py      提示词和问答链，会话写入 SQLite
 app/rag/utils.py       去掉页码等噪音
 scripts/init_db.py     构建或加载向量库
+eval/                  评测集和跑分脚本
 data/                  法律 PDF（索引和会话库运行时生成）
 ```
 
@@ -98,10 +99,9 @@ data/                  法律 PDF（索引和会话库运行时生成）
 
 ## 已知限制
 
-- 评测还没做。仓库里没有测试集，也没有准确率、召回率或人工分数。
+- 评测集在 `eval/`，用法和基线对比见 `eval/README.md`。检索仍未系统调参：BM25 用的是按空格切分的默认分词，中文效果有限，向量和关键词的权重仍是写死的 0.6 / 0.4。
 - Agent 层还没做。之前的搜索 / SQL Agent 跑不起来，已经从仓库里去掉。如果以后要加，会单独做一层，而不是塞进现在的问答链。
 - 多轮历史会写入 SQLite，但提示词里的历史接法还不对，追问不一定用到上一轮内容。问答链的这部分留着以后改。
-- 检索没有调过。BM25 用的是按空格切分的默认分词，中文效果有限。向量和关键词的权重是写死的 0.6 / 0.4。
 - 嵌入模型必须由本机 Ollama 提供。Ollama 没开时，建索引和提问都会失败。
 - 页面上展开的「相关条文」是另一次检索的结果，和生成回答时用的那一次不是同一次调用。
 - 模型可能说出条文里没有的话。提示词要求它依据材料作答，代码没有再做校验。

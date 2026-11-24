@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-11-24T16:29:10",
+  "eval_set": "/Users/jude/Develop/ai-doc-assistant/eval/eval_set.jsonl",
+  "n_items": 40,
+  "n_answerable": 34,
+  "n_unanswerable": 6,
+  "counts_by_type": {
+    "single_article": 20,
+    "multi_article": 8,
+    "paraphrase": 6,
+    "unanswerable": 6
+  },
+  "k_values": [
+    1,
+    3,
+    5,
+    6
+  ],
+  "with_answers": true,
+  "with_llm_judge": false,
+  "notes": [
+    "检索命中优先使用 chunk.metadata['article']；没有该字段时，回退到从正文识别条文标题（第X条）。",
+    "get_retrieval_result 的 k 会传给向量检索和 BM25；本脚本按返回列表的名次计算 Hit@k。",
+    "生成回答时使用与项目相同的提示词和 LLM 环境变量，但 history 为空，且不写入 data/chat_history.db。"
+  ],
+  "retrieval": {
+    "hit@1": 0.8823529411764706,
+    "article_recall@1": 0.7573529411764706,
+    "hit@3": 0.9411764705882353,
+    "article_recall@3": 0.9044117647058824,
+    "hit@5": 0.9705882352941176,
+    "article_recall@5": 0.9485294117647058,
+    "hit@6": 0.9705882352941176,
+    "article_recall@6": 0.9485294117647058,
+    "mrr": 0.9191176470588235
+  },
+  "answers": {
+    "citation_hit": 0.9705882352941176,
+    "citation_precision": 0.7916666666666667,
+    "citation_recall": 0.9705882352941176,
+    "citation_exact": 0.6176470588235294,
+    "refusal_accuracy": 0.6666666666666666
+  },
+  "by_type": {
+    "single_article": {
+      "n": 20,
+      "hit@1": 0.9,
+      "hit@6": 1.0,
+      "mrr": 0.95
+    },
+    "multi_article": {
+      "n": 8,
+      "hit@1": 1.0,
+      "hit@6": 1.0,
+      "mrr": 1.0
+    },
+    "paraphrase": {
+      "n": 6,
+      "hit@1": 0.6666666666666666,
+      "hit@6": 0.8333333333333334,
+      "mrr": 0.7083333333333334
+    },
+    "unanswerable": {
+      "n": 6,
+      "hit@1": null,
+      "hit@6": null,
+      "mrr": null
+    }
+  }
+}
