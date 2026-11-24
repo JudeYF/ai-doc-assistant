@@ -3,7 +3,7 @@
 
 默认只跑检索指标，不启动 FastAPI / Streamlit，也不会重建向量库。
 检索会调用项目里的 get_retrieval_result，因此本机需要已有
-data/chroma_db，并且 Ollama 已加载嵌入模型（查询时要算 query 向量）。
+data/chroma_db_v2（若没有，请先运行 python scripts/init_db.py），并且 Ollama 已加载嵌入模型（查询时要算 query 向量）。
 
 用法（在仓库根目录）:
 
@@ -225,13 +225,10 @@ def setup_imports() -> None:
 
 def ensure_index_exists() -> Path:
     v2 = PROJECT_ROOT / "data" / "chroma_db_v2"
-    legacy = PROJECT_ROOT / "data" / "chroma_db"
     if v2.exists():
         return v2
-    if legacy.exists():
-        return legacy
     die(
-        f"未找到向量库 {v2} 或 {legacy}。请先在仓库根目录运行 "
+        f"未找到向量库 {v2}。请先在仓库根目录运行 "
         f"`python scripts/init_db.py`。本脚本不会自动重建索引。"
     )
 

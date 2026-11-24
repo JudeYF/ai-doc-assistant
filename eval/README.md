@@ -7,7 +7,7 @@
 ## 语料和切分
 
 - 仓库里目前只有这一份法律 PDF。
-- **当前索引**（`feat/article-chunking`）：`data/chroma_db_v2/`，collection 名 `china_public_security_law_v2`，**120** 个片段（前言 1 块 + 119 条，一条一个片段）。metadata 含 `source`（文件名）、`article`（中文条号）、`chapter`、`chunk_id`。纯章/节标题片段已丢掉，正文末尾残留的 `—10` 一类页码已清洗。
+- **当前默认索引**（main）：`data/chroma_db_v2/`，collection 名 `china_public_security_law_v2`，**120** 个片段（前言 1 块 + 119 条，一条一个片段）。metadata 含 `source`（文件名）、`article`（中文条号）、`chapter`、`chunk_id`。纯章/节标题片段已丢掉，正文末尾残留的 `—10` 一类页码已清洗。
 - **旧索引**（基线）：`data/chroma_db/`，collection 名 `china_public_security_law`，**30** 个片段。当时按章/节/条正则切、`chunk_size=800`，短条文常被合并；metadata 只有 PDF 绝对路径；有两个几乎只有章节标题的片段，并残留页码。
 - 评测命中优先用 `metadata['article']`，没有该字段时再从正文识别作为标题出现的「第X条」。正文里的交叉引用（例如「依照本法第四十三条第一款」）不会被当成该条已被检索到。
 
