@@ -12,6 +12,36 @@ A small LangChain RAG demo: question answering over the PRC Public Security Admi
 - 本机 [Ollama](https://ollama.com) 已启动，并已拉取嵌入模型 `bge-m3:latest`
 - 一个 OpenAI 兼容的对话模型接口和密钥。`.env.example` 里的示例是智谱 GLM，换成别的兼容地址也可以
 
+## 用 Docker 启动
+
+需要本机已安装 Docker（或 Colima 等引擎），以及已启动并拉取了 `bge-m3:latest` 的 Ollama。Compose 不会再起一个 Ollama 服务，容器通过 `host.docker.internal` 访问本机 Ollama。
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env`，至少填入 `LLM_API_KEY`。然后：
+
+```bash
+docker compose up --build
+```
+
+- 健康检查：<http://127.0.0.1:8000/health>
+- 接口文档：<http://127.0.0.1:8000/docs>
+- 页面：<http://127.0.0.1:8501>
+
+第一次启动会按 PDF 构建向量索引，耗时取决于本机 Ollama。索引写在名为 `ai-doc-assistant_chroma-data` 的 volume 里，之后再启动会直接加载。要重建索引：
+
+```bash
+docker compose down
+docker volume rm ai-doc-assistant_chroma-data
+docker compose up --build
+```
+
+容器内的 `OLLAMA_BASE_URL` 默认是 `http://host.docker.internal:11434`，不受 `.env` 里 `127.0.0.1` 的影响。如果 Ollama 不在本机，在 `.env` 里设置 `DOCKER_OLLAMA_BASE_URL`。
+
+会话历史（`data/chat_history.db`）在容器内，`docker compose down` 后不会保留。
+
 ## 安装并启动
 
 在仓库根目录执行：
@@ -78,6 +108,7 @@ streamlit run app/streamlit_app.py --server.port 8501
 | `LLM_TEMPERATURE` | 采样温度 | `0.6` |
 | `OLLAMA_BASE_URL` | Ollama 地址 | `http://127.0.0.1:11434` |
 | `OLLAMA_EMBEDDING_MODEL` | 嵌入模型 | `bge-m3:latest` |
+| `DOCKER_OLLAMA_BASE_URL` | 仅 docker compose：容器访问 Ollama 的地址 | `http://host.docker.internal:11434` |
 
 密钥、模型名和地址都从环境变量读取，代码里没有写死的密钥或本机绝对路径。
 
@@ -91,6 +122,9 @@ app/rag/retriever.py   Chroma + BM25 混合检索
 app/rag/chains.py      提示词和问答链，会话写入 SQLite
 app/rag/utils.py       去掉页码等噪音
 scripts/init_db.py     构建或加载向量库
+scripts/docker-entrypoint.sh  容器入口：缺索引时先构建，再启动 API 或页面
+Dockerfile             应用镜像
+docker-compose.yml     api（8000）和 web（8501）两个服务，共用索引 volume
 eval/                  评测集和跑分脚本
 data/                  法律 PDF（索引和会话库运行时生成）
 ```

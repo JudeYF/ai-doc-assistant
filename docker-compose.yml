@@ -1,0 +1,57 @@
+name: ai-doc-assistant
+
+x-app-env: &app-env
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_MODEL: ${LLM_MODEL:-glm-5}
+  LLM_BASE_URL: ${LLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4/}
+  LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.6}
+  OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-bge-m3:latest}
+  # Ignore OLLAMA_BASE_URL=127.0.0.1 from a host .env; the container must
+  # use host.docker.internal (or DOCKER_OLLAMA_BASE_URL) to reach host Ollama.
+  OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+
+services:
+  api:
+    build: .
+    image: ai-doc-assistant:local
+    command: ["api"]
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *app-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - chroma-data:/app/data/chroma_db_v2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 240s
+    restart: unless-stopped
+
+  web:
+    image: ai-doc-assistant:local
+    command: ["web"]
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *app-env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - chroma-data:/app/data/chroma_db_v2
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  chroma-data:
