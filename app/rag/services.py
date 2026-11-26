@@ -64,6 +64,33 @@ def cn_to_int(label: str) -> int:
     return below_100(s)
 
 
+def int_to_cn(n: int) -> str:
+    """把正整数转成条文里用的中文数字，例如 50 → 五十、101 → 一百零一。"""
+    if not isinstance(n, int) or isinstance(n, bool) or n <= 0 or n >= 1000:
+        raise ValueError(f"无法转换为中文数字: {n!r}")
+
+    digits = "零一二三四五六七八九"
+
+    def below_100(value: int, *, leading_ten: bool = False) -> str:
+        if value < 10:
+            return digits[value]
+        if value < 20:
+            prefix = "一十" if leading_ten else "十"
+            return prefix if value == 10 else prefix + digits[value - 10]
+        tens, ones = divmod(value, 10)
+        return digits[tens] + "十" + (digits[ones] if ones else "")
+
+    if n < 100:
+        return below_100(n)
+    hundreds, rest = divmod(n, 100)
+    head = digits[hundreds] + "百"
+    if rest == 0:
+        return head
+    if rest < 10:
+        return head + "零" + digits[rest]
+    return head + below_100(rest, leading_ten=True)
+
+
 def _normalize_header(text: str) -> str:
     return re.sub(r"[ \t]+", " ", text).strip()
 

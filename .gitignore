@@ -28,7 +28,7 @@ Thumbs.db
 # Generated indexes and chat history
 chroma_db/
 data/chroma_db/
-data/chroma_db_v2/
+data/chroma_db_v2
 data/chroma_db.bak*/
 data/chat_history.db
 *.sqlite

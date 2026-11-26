@@ -129,6 +129,46 @@ streamlit run app/streamlit_app.py --server.port 8501
 
 本机单独启动页面时，提问直接走本地问答链。若希望页面也走 API 限流（例如 Docker 或云上部署），设置 `API_BASE_URL`（如 `http://127.0.0.1:8000`）。接口返回 429 时，页面会直接显示限流说明。
 
+
+## 作为 MCP 工具使用（Cursor / Claude Desktop）
+
+检索已经封装成本地 MCP 服务，走 stdio。Cursor 或 Claude Desktop 可以直接调用知识库，不必先开 FastAPI 或 Streamlit。
+
+需要已经构建好 `data/chroma_db_v2`（`python scripts/init_db.py`），并且嵌入模型和平时运行时一致（默认是本机 Ollama 的 `bge-m3:latest`）。`get_article` 按条号精确查找，不走嵌入，没有索引时会回退到解析 PDF。
+
+在仓库根目录、使用项目虚拟环境启动：
+
+```bash
+.venv/bin/python -m app.mcp_server
+```
+
+在 Cursor 的 MCP 配置（例如项目里的 `.cursor/mcp.json` 或用户级配置）或 Claude Desktop 的配置中加入：
+
+```json
+{
+  "mcpServers": {
+    "ai-doc-assistant": {
+      "command": "/绝对路径/ai-doc-assistant/.venv/bin/python",
+      "args": ["-m", "app.mcp_server"],
+      "cwd": "/绝对路径/ai-doc-assistant"
+    }
+  }
+}
+```
+
+把 `/绝对路径/ai-doc-assistant` 换成仓库根目录的实际路径。必须使用这个虚拟环境里的 Python，并且 `cwd` 指向仓库根目录，服务才能找到索引和 PDF。
+
+提供两个工具：
+
+- `search_law(query, top_k=5)`：用现有的向量 + BM25 混合检索，返回条号、章节、正文，以及能拿到的相关度分数
+- `get_article(article_number)`：按条号取出完整原文，支持「第五十条」或「50」
+
+可以这样试：
+
+> 用 ai-doc-assistant 查一下：阻碍执行紧急任务的消防车会怎么处罚？如果搜到第五十条，再把这一条的原文取出来核对。
+
+MCP 把标准输出当作通信通道，不要在这个进程里往 stdout 打印日志。
+
 ## 配置
 
 | 变量 | 含义 | 默认 |
@@ -155,6 +195,7 @@ streamlit run app/streamlit_app.py --server.port 8501
 
 ```
 app/main.py            FastAPI：/health、/chat（含按 IP 限流）
+app/mcp_server.py      把检索暴露为本地 MCP 工具（stdio）
 app/streamlit_app.py   聊天页
 app/chat_client.py     页面向本地链或 /chat 提问
 app/rate_limit.py      滑动窗口限流
@@ -168,7 +209,7 @@ scripts/docker-entrypoint.sh  容器入口：缺索引时先构建，再启动 A
 Dockerfile             应用镜像
 docker-compose.yml     api（8000）和 web（8501）两个服务，共用索引 volume
 eval/                  评测集和跑分脚本
-tests/                 嵌入工厂和限流的单元测试
+tests/                 嵌入工厂、限流和 MCP 服务的测试
 data/                  法律 PDF（索引和会话库运行时生成）
 ```
 
