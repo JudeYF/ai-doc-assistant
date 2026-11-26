@@ -6,6 +6,12 @@ A small LangChain RAG demo: question answering over the PRC Public Security Admi
 
 这是一个能跑起来的学习项目。`eval/` 里有一份基于当前语料的评测集。回答不构成法律意见。
 
+## 在线体验（Live Demo）
+
+公网页面：[http://43.143.107.119:8501/](http://43.143.107.119:8501/)
+
+部署在腾讯云轻量应用服务器上，用 Docker Compose 同时运行 FastAPI 和 Streamlit。线上使用硅基流动（SiliconFlow）接口：嵌入模型 `BAAI/bge-m3`，对话模型 `Qwen2.5-7B-Instruct`。问答接口按客户端 IP 限制为每分钟 10 次。
+
 ## 运行前需要
 
 - Python 3.12
