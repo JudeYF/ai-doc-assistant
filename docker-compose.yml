@@ -5,10 +5,18 @@ x-app-env: &app-env
   LLM_MODEL: ${LLM_MODEL:-glm-5}
   LLM_BASE_URL: ${LLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4/}
   LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.6}
+  EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+  EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+  EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://api.siliconflow.cn/v1}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+  EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
   OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-bge-m3:latest}
   # Ignore OLLAMA_BASE_URL=127.0.0.1 from a host .env; the container must
   # use host.docker.internal (or DOCKER_OLLAMA_BASE_URL) to reach host Ollama.
+  # Unused when EMBEDDING_PROVIDER=api.
   OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-10}
+  TRUST_FORWARDED_FOR: ${TRUST_FORWARDED_FOR:-false}
 
 services:
   api:
@@ -44,6 +52,8 @@ services:
         required: false
     environment:
       <<: *app-env
+      # 页面经 API 提问，才能吃到 /chat 的限流，并展示 429 提示。
+      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

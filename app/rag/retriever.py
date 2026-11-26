@@ -1,12 +1,12 @@
 """向量数据库管理模块"""
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
-from langchain_ollama import OllamaEmbeddings
+
+from app.rag.embeddings import describe_embedding, get_embedding
 
 load_dotenv()
 
@@ -25,14 +25,6 @@ _bm25_retriever = None
 _ensemble_retriever = None
 
 
-def get_embedding():
-    """获取嵌入模型（Ollama，模型名和地址来自环境变量）"""
-    return OllamaEmbeddings(
-        model=os.getenv("OLLAMA_EMBEDDING_MODEL", "bge-m3:latest"),
-        base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
-    )
-
-
 def init_database():
     """加载按条切分后的向量库；目录不存在或 collection 为空时才新建。"""
     global _db
@@ -41,6 +33,7 @@ def init_database():
         return _db
 
     embedding = get_embedding()
+    print(f"🧠 嵌入模型: {describe_embedding()}")
 
     if DB_PATH.exists():
         print("📂 加载已有数据库...")

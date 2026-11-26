@@ -7,7 +7,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 import streamlit as st
-from app.rag.chains import ask
+from app.chat_client import RateLimitExceeded, ask_question
 from app.rag.retriever import get_retrieval_result
 
 # ==========================
@@ -140,7 +140,7 @@ if st.session_state.pending_user_input:
     # 生成 AI 回答
     with st.spinner("正在生成回答..."):
         try:
-            response = ask(prompt, st.session_state.session_id)
+            response = ask_question(prompt, st.session_state.session_id)
             with st.chat_message("assistant"):
                 st.write(response)
                 # 显示检索来源
@@ -156,6 +156,12 @@ if st.session_state.pending_user_input:
                 "content": response,
                 "sources": sources
             })
+        except RateLimitExceeded as e:
+            error_msg = str(e)
+            with st.chat_message("assistant"):
+                st.error(error_msg)
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
         except Exception as e:
             error_msg = f"处理出错: {str(e)}"
             with st.chat_message("assistant"):
@@ -184,7 +190,7 @@ if prompt := st.chat_input("请输入您的问题..."):
     # 生成 AI 回答
     with st.spinner("正在生成回答..."):
         try:
-            response = ask(prompt, st.session_state.session_id)
+            response = ask_question(prompt, st.session_state.session_id)
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": response,
@@ -197,6 +203,11 @@ if prompt := st.chat_input("请输入您的问题..."):
                     for i, source in enumerate(sources, 1):
                         st.markdown(f"**来源 {i}:**")
                         st.text(source[:300] + "..." if len(source) > 300 else source)
+        except RateLimitExceeded as e:
+            error_msg = str(e)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            with st.chat_message("assistant"):
+                st.error(error_msg)
         except Exception as e:
             error_msg = f"处理出错: {str(e)}"
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
